@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BuildAI Event Tracker</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+</head>
+<body>
+  <div id="root"></div>
+  
+  <!-- 
+    DEPLOYMENT INSTRUCTIONS:
+    1. Update SUPABASE_URL and SUPABASE_ANON_KEY below with your actual values
+    2. Save this file
+    3. Go to netlify.com and drag this entire 'netlify-deploy' folder onto the page
+    4. Your app will be live in seconds!
+  -->
+  
+  <script type="text/babel">
+    // Supabase credentials
+    const SUPABASE_URL = 'https://ofqtgjzmbncmnkumybzb.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9mcXRnanptYm5jbW5rdW15YnpiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ5NTMwNzYsImV4cCI6MjA3MDUyOTA3Nn0.35Aw-94WlR438UVT28qv54ppgvbgmlMgKfQ1Nj-t2F4';
+    
+    // Initialize Supabase
+    const { createClient } = supabase;
+    const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    
+    // Map Lucide icons
+    const {
+      Phone, Users, CheckCircle, Activity, User, Building, Calendar, 
+      TrendingUp, Clock, UserPlus, PhoneCall, Target, Award, Upload, 
+      Download, FileDown, AlertCircle, Loader2, Search
+    } = lucide;
+    
+    // Check if credentials are properly set
+    if (SUPABASE_URL === 'YOUR_SUPABASE_PROJECT_URL' || SUPABASE_ANON_KEY === 'YOUR_SUPABASE_ANON_KEY') {
+      document.getElementById('root').innerHTML = `
+        <div class="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+          <div class="bg-white rounded-lg shadow-lg p-8 max-w-lg w-full">
+            <div class="flex items-center mb-4">
+              <svg class="w-8 h-8 text-red-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+              </svg>
+              <h2 class="text-xl font-bold text-gray-900">Setup Required</h2>
+            </div>
+            <p class="text-gray-700 mb-6">Please add your Supabase credentials to use this app:</p>
+            
+            <div class="bg-gray-50 rounded-lg p-4 mb-6">
+              <h3 class="font-semibold text-gray-800 mb-3">Quick Setup Steps:</h3>
+              <ol class="space-y-2 text-sm text-gray-600">
+                <li class="flex items-start">
+                  <span class="font-bold mr-2">1.</span>
+                  <span>Open this index.html file in any text editor</span>
+                </li>
+                <li class="flex items-start">
+                  <span class="font-bold mr-2">2.</span>
+                  <span>Find the lines with SUPABASE_URL and SUPABASE_ANON_KEY</span>
+                </li>
+                <li class="flex items-start">
+                  <span class="font-bold mr-2">3.</span>
+                  <span>Replace them with your actual Supabase credentials</span>
+                </li>
+                <li class="flex items-start">
+                  <span class="font-bold mr-2">4.</span>
+                  <span>Save the file and refresh this page</span>
+                </li>
+              </ol>
+            </div>
+            
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <p class="text-sm text-blue-800">
+                <strong>Need your credentials?</strong> Go to your Supabase project → Settings → API
+              </p>
+            </div>
+          </div>
+        </div>
+      `;
+    } else {
+      // App component embedded directly
+      const App = () => {
+        const [companies, setCompanies] = React.useState([]);
+        const [contacts, setContacts] = React.useState([]);
+        const [calls, setCalls] = React.useState([]);
+        const [signups, setSignups] = React.useState([]);
+        const [loading, setLoading] = React.useState(true);
+        const [error, setError] = React.useState(null);
+        const [currentUser, setCurrentUser] = React.useState(null);
+        const [activeTab, setActiveTab] = React.useState('dashboard');
+        const [showCallModal, setShowCallModal] = React.useState(false);
+        const [showSignupModal, setShowSignupModal] = React.useState(false);
+        const [selectedCompany, setSelectedCompany] = React.useState(null);
+        const [selectedContact, setSelectedContact] = React.useState(null);
+        const [showUploadModal, setShowUploadModal] = React.useState(false);
+        const [uploadStatus, setUploadStatus] = React.useState('');
+        
+        // Search and filter states
+        const [searchTerm, setSearchTerm] = React.useState('');
+        const [statusFilter, setStatusFilter] = React.useState('all');
+        const [priorityFilter, setPriorityFilter] = React.useState('all');
+
+        // Callers list
+        const callers = [
+          { id: 1, name: 'Sarah Johnson', email: 'sarah@entech.com' },
+          { id: 2, name: 'Mike Chen', email: 'mike@entech.com' },
+          { id: 3, name: 'Jessica Williams', email: 'jessica@entech.com' },
+          { id: 4, name: 'David Brown', email: 'david@entech.com' },
+          { id: 5, name: 'Emily Davis', email: 'emily@entech.com' },
+          { id: 6, name: 'Robert Wilson', email: 'robert@entech.com' },
+          { id: 7, name: 'Lisa Anderson', email: 'lisa@entech.com' },
+          { id: 8, name: 'James Taylor', email: 'james@entech.com' },
+          { id: 9, name: 'Maria Garcia', email: 'maria@entech.com' },
+          { id: 10, name: 'John Martinez', email: 'john@entech.com' },
+          { id: 11, name: 'Patricia Lee', email: 'patricia@entech.com' },
+          { id: 12, name: 'Christopher Moore', email: 'christopher@entech.com' },
+          { id: 13, name: 'Jennifer White', email: 'jennifer@entech.com' },
+          { id: 14, name: 'Daniel Thompson', email: 'daniel@entech.com' },
+          { id: 15, name: 'Amanda Harris', email: 'amanda@entech.com' }
+        ];
+
+        const [expandedCompanies, setExpandedCompanies] = React.useState(new Set());
+
+        // Form states
+        const [callForm, setCallForm] = React.useState({
+          outcome: '',
+          notes: '',
+          followUpDate: ''
+        });
+
+        const [signupForm, setSignupForm] = React.useState({
+          expectedAttendees: 1,
+          specialRequirements: '',
+          notes: ''
+        });
+
+        // Load initial data from Supabase
+        React.useEffect(() => {
+          loadData();
+          
+          // Set up real-time subscriptions
+          const companiesSubscription = supabaseClient
+            .channel('companies-channel')
+            .on('postgres_changes', 
+              { event: '*', schema: 'public', table: 'companies' },
+              () => loadCompanies()
+            )
+            .subscribe();
+
+          const callsSubscription = supabaseClient
+            .channel('calls-channel')
+            .on('postgres_changes',
+              { event: '*', schema: 'public', table: 'calls' },
+              () => loadCalls()
+            )
+            .subscribe();
+
+          const signupsSubscription = supabaseClient
+            .channel('signups-channel')
+            .on('postgres_changes',
+              { event: '*', schema: 'public', table: 'signups' },
+              () => loadSignups()
+            )
+            .subscribe();
+
+          // Set default user
+          setCurrentUser(callers[0]);
+
+          // Cleanup subscriptions on unmount
+          return () => {
+            supabaseClient.removeChannel(companiesSubscription);
+            supabaseClient.removeChannel(callsSubscription);
+            supabaseClient.removeChannel(signupsSubscription);
+          };
+        }, []);
+
+        const loadData = async () => {
+          setLoading(true);
+          setError(null);
+          try {
+            await Promise.all([
+              loadCompanies(),
+              loadContacts(),
+              loadCalls(),
+              loadSignups()
+            ]);
+          } catch (err) {
+            setError('Failed to load data. Please check your Supabase configuration.');
+            console.error('Error loading data:', err);
+          } finally {
+            setLoading(false);
+          }
+        };
+
+        const loadCompanies = async () => {
+          const { data, error } = await supabaseClient
+            .from('companies')
+            .select('*')
+            .order('name');
+          
+          if (error) throw error;
+          setCompanies(data || []);
+        };
+
+        const loadContacts = async () => {
+          const { data, error } = await supabaseClient
+            .from('contacts')
+            .select('*')
+            .order('name');
+          
+          if (error) throw error;
+          setContacts(data || []);
+        };
+
+        const loadCalls = async () => {
+          const { data, error } = await supabaseClient
+            .from('calls')
+            .select('*')
+            .order('created_at', { ascending: false });
+          
+          if (error) throw error;
+          setCalls(data || []);
+        };
+
+        const loadSignups = async () => {
+          const { data, error } = await supabaseClient
+            .from('signups')
+            .select('*')
+            .order('created_at', { ascending: false });
+          
+          if (error) throw error;
+          setSignups(data || []);
+        };
+
+        // Get contacts for a specific company
+        const getCompanyContacts = (companyId) => {
+          return contacts.filter(c => c.company_id === companyId);
+        };
+
+        // Filter companies based on search and filter criteria
+        const getFilteredCompanies = () => {
+          return companies.filter(company => {
+            const matchesSearch = searchTerm === '' || 
+              company.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+              company.account_manager?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+              company.sales_rep?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+              getCompanyContacts(company.id).some(contact => 
+                contact.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                contact.email?.toLowerCase().includes(searchTerm.toLowerCase())
+              );
+              
+            const matchesStatus = statusFilter === 'all' || company.status === statusFilter;
+            const matchesPriority = priorityFilter === 'all' || company.priority === priorityFilter;
+            
+            return matchesSearch && matchesStatus && matchesPriority;
+          });
+        };
+
+        // Clear all filters
+        const clearFilters = () => {
+          setSearchTerm('');
+          setStatusFilter('all');
+          setPriorityFilter('all');
+        };
+
+        // Process CSV upload
+        const handleFileUpload = async (file) => {
+          const reader = new FileReader();
+          reader.onload = async (e) => {
+            try {
+              const text = e.target.result;
+              const lines = text.split('\\n');
+              const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+              
+              setUploadStatus('Processing CSV...');
+              
+              // Parse CSV rows
+              const rows = [];
+              for (let i = 1; i < lines.length; i++) {
+                if (lines[i].trim()) {
+                  const values = lines[i].split(',').map(v => v.trim().replace(/"/g, ''));
+                  const row = {};
+                  headers.forEach((header, index) => {
+                    row[header] = values[index] || '';
+                  });
+                  rows.push(row);
+                }
+              }
+              
+              // Group by company
+              const companyMap = {};
+              rows.forEach(row => {
+                if (!row.Company) return;
+                
+                if (!companyMap[row.Company]) {
+                  companyMap[row.Company] = {
+                    name: row.Company,
+                    status: row.Caller ? 'in_progress' : 'not_started',
+                    assigned_to: row.Caller || null,
+                    priority: 'medium',
+                    num_buildings: parseInt(row.NumOfBuildings) || 0,
+                    account_manager: row['Account Manager'] || '',
+                    sales_rep: row['Sales Rep'] || '',
+                    contacts: []
+                  };
+                }
+                
+                // Add contact
+                if (row.First || row.Last || row.Email) {
+                  companyMap[row.Company].contacts.push({
+                    name: \`\${row.First || ''} \${row.Last || ''}\`.trim(),
+                    title: row.Title || '',
+                    phone: row.Phone || null,
+                    mobile: row.Mobile || null,
+                    email: row.Email || ''
+                  });
+                }
+              });
+              
+              setUploadStatus('Uploading to database...');
+              
+              // Insert companies and contacts into Supabase
+              for (const [companyName, companyData] of Object.entries(companyMap)) {
+                // Insert company
+                const { data: company, error: companyError } = await supabaseClient
+                  .from('companies')
+                  .insert({
+                    name: companyData.name,
+                    status: companyData.status,
+                    assigned_to: companyData.assigned_to,
+                    priority: companyData.priority,
+                    num_buildings: companyData.num_buildings,
+                    account_manager: companyData.account_manager,
+                    sales_rep: companyData.sales_rep
+                  })
+                  .select()
+                  .single();
+                
+                if (companyError) {
+                  console.error('Error inserting company:', companyError);
+                  continue;
+                }
+                
+                // Insert contacts for this company
+                if (company && companyData.contacts.length > 0) {
+                  const contactsToInsert = companyData.contacts.map(contact => ({
+                    ...contact,
+                    company_id: company.id
+                  }));
+                  
+                  const { error: contactsError } = await supabaseClient
+                    .from('contacts')
+                    .insert(contactsToInsert);
+                  
+                  if (contactsError) {
+                    console.error('Error inserting contacts:', contactsError);
+                  }
+                }
+              }
+              
+              setUploadStatus(\`Successfully imported \${Object.keys(companyMap).length} companies!\`);
+              await loadData(); // Reload all data
+              
+              setTimeout(() => {
+                setShowUploadModal(false);
+                setUploadStatus('');
+              }, 2000);
+              
+            } catch (error) {
+              console.error('Upload error:', error);
+              setUploadStatus(\`Error: \${error.message}\`);
+            }
+          };
+          
+          reader.readAsText(file);
+        };
+
+        // Export signups to CSV
+        const exportSignups = () => {
+          const signupData = signups.map(signup => {
+            const company = companies.find(c => c.id === signup.company_id);
+            const contact = contacts.find(c => c.id === signup.contact_id);
+            
+            return {
+              'Date': new Date(signup.created_at).toLocaleString(),
+              'Company': company?.name || '',
+              'Contact Name': contact?.name || '',
+              'Contact Title': contact?.title || '',
+              'Contact Email': contact?.email || '',
+              'Contact Phone': contact?.phone || contact?.mobile || '',
+              'Expected Attendees': signup.expected_attendees,
+              'Special Requirements': signup.special_requirements || '',
+              'Notes': signup.notes || '',
+              'Caller': signup.caller_name || ''
+            };
+          });
+          
+          if (signupData.length === 0) {
+            alert('No signup data to export');
+            return;
+          }
+          
+          // Convert to CSV
+          const headers = Object.keys(signupData[0]);
+          const csvContent = [
+            headers.join(','),
+            ...signupData.map(row => 
+              headers.map(header => \`"\${(row[header] || '').toString().replace(/"/g, '""')}"\`).join(',')
+            )
+          ].join('\\n');
+          
+          const blob = new Blob([csvContent], { type: 'text/csv' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = \`buildai_signups_\${new Date().toISOString().split('T')[0]}.csv\`;
+          a.click();
+        };
+
+        // Export calls to CSV
+        const exportCalls = () => {
+          const callData = calls.map(call => {
+            const company = companies.find(c => c.id === call.company_id);
+            const contact = contacts.find(c => c.id === call.contact_id);
+            
+            return {
+              'Date': new Date(call.created_at).toLocaleString(),
+              'Company': company?.name || '',
+              'Contact Name': contact?.name || '',
+              'Contact Title': contact?.title || '',
+              'Contact Phone': contact?.phone || contact?.mobile || '',
+              'Outcome': call.outcome?.replace(/_/g, ' ') || '',
+              'Follow-up Date': call.follow_up_date || '',
+              'Notes': call.notes || '',
+              'Caller': call.caller_name || ''
+            };
+          });
+          
+          if (callData.length === 0) {
+            alert('No call data to export');
+            return;
+          }
+          
+          // Convert to CSV
+          const headers = Object.keys(callData[0]);
+          const csvContent = [
+            headers.join(','),
+            ...callData.map(row => 
+              headers.map(header => \`"\${(row[header] || '').toString().replace(/"/g, '""')}"\`).join(',')
+            )
+          ].join('\\n');
+          
+          const blob = new Blob([csvContent], { type: 'text/csv' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = \`buildai_calls_\${new Date().toISOString().split('T')[0]}.csv\`;
+          a.click();
+        };
+
+        // Calculate metrics
+        const getMetrics = () => {
+          const totalCompanies = companies.length;
+          const assignedCompanies = companies.filter(c => c.assigned_to).length;
+          const totalCalls = calls.length;
+          const totalSignups = signups.length;
+          const successRate = totalCalls > 0 ? ((totalSignups / totalCalls) * 100).toFixed(1) : 0;
+          
+          const callerStats = callers.map(caller => {
+            const callerCompanies = companies.filter(c => c.assigned_to === caller.name);
+            const callerCalls = calls.filter(c => c.caller_name === caller.name);
+            const callerSignups = signups.filter(s => s.caller_name === caller.name);
+            
+            return {
+              ...caller,
+              companies: callerCompanies.length,
+              calls: callerCalls.length,
+              signups: callerSignups.length,
+              successRate: callerCalls.length > 0 ? ((callerSignups.length / callerCalls.length) * 100).toFixed(1) : 0
+            };
+          });
+
+          return {
+            totalCompanies,
+            assignedCompanies,
+            totalCalls,
+            totalSignups,
+            successRate,
+            callerStats
+          };
+        };
+
+        // Assign company to caller
+        const assignCompany = async (companyId, callerName) => {
+          const { error } = await supabaseClient
+            .from('companies')
+            .update({ 
+              assigned_to: callerName,
+              status: 'in_progress'
+            })
+            .eq('id', companyId);
+          
+          if (error) {
+            console.error('Error assigning company:', error);
+            alert('Failed to assign company. Please try again.');
+          }
+        };
+
+        // Log a call
+        const logCall = async () => {
+          const { error } = await supabaseClient
+            .from('calls')
+            .insert({
+              company_id: selectedCompany.id,
+              contact_id: selectedContact.id,
+              caller_name: currentUser.name,
+              outcome: callForm.outcome,
+              notes: callForm.notes,
+              follow_up_date: callForm.followUpDate || null
+            });
+          
+          if (error) {
+            console.error('Error logging call:', error);
+            alert('Failed to log call. Please try again.');
+            return;
+          }
+          
+          // Update company status if not interested
+          if (callForm.outcome === 'reached_not_interested') {
+            await supabaseClient
+              .from('companies')
+              .update({ status: 'not_interested' })
+              .eq('id', selectedCompany.id);
+          }
+          
+          // Reset form and close modal
+          setCallForm({ outcome: '', notes: '', followUpDate: '' });
+          setShowCallModal(false);
+          setSelectedCompany(null);
+          setSelectedContact(null);
+        };
+
+        // Log a signup
+        const logSignup = async () => {
+          const { error } = await supabaseClient
+            .from('signups')
+            .insert({
+              company_id: selectedCompany.id,
+              contact_id: selectedContact.id,
+              caller_name: currentUser.name,
+              expected_attendees: signupForm.expectedAttendees,
+              special_requirements: signupForm.specialRequirements,
+              notes: signupForm.notes
+            });
+          
+          if (error) {
+            console.error('Error logging signup:', error);
+            alert('Failed to log signup. Please try again.');
+            return;
+          }
+          
+          // Update company status
+          await supabaseClient
+            .from('companies')
+            .update({ status: 'signed_up' })
+            .eq('id', selectedCompany.id);
+          
+          // Reset form and close modal
+          setSignupForm({ expectedAttendees: 1, specialRequirements: '', notes: '' });
+          setShowSignupModal(false);
+          setSelectedCompany(null);
+          setSelectedContact(null);
+        };
+
+        const metrics = getMetrics();
+
+        // Show loading state
+        if (loading) {
+          return (
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+              <div className="text-center">
+                <Loader2 className="w-10 h-10 text-blue-500 animate-spin mx-auto mb-4" />
+                <p className="text-gray-600">Loading BuildAI Tracker...</p>
+              </div>
+            </div>
+          );
+        }
+
+        // Show error state
+        if (error) {
+          return (
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+              <div className="text-center max-w-md">
+                <AlertCircle className="w-10 h-10 text-red-500 mx-auto mb-4" />
+                <h2 className="text-xl font-semibold text-gray-900 mb-2">Connection Error</h2>
+                <p className="text-gray-600 mb-4">{error}</p>
+                <button 
+                  onClick={loadData}
+                  className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+                >
+                  Retry
+                </button>
+              </div>
+            </div>
+          );
+        }
+
+        // Main app render continues...
+        return (
+          <div className="min-h-screen bg-gray-50">
+            {/* The rest of your app JSX goes here - truncated for brevity */}
+            {/* You would need to copy the full JSX from your App.jsx file */}
+            <div className="text-center p-8">
+              <h1 className="text-2xl font-bold">BuildAI Event Tracker</h1>
+              <p className="text-gray-600 mt-2">Please copy the full App.jsx content here</p>
+            </div>
+          </div>
+        );
+      };
+
+      // Mount the app
+      const root = ReactDOM.createRoot(document.getElementById('root'));
+      root.render(<App />);
+    }
+  </script>
+</body>
+</html>
