@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BuildAI Event Tracker</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+</head>
+<body>
+  <div id="root"></div>
+  
+  <script type="text/babel">
+    // Initialize environment variables
+    window.process = { env: {} };
+    
+    // Map Lucide icons to global scope
+    const {
+      Phone, Users, CheckCircle, Activity, User, Building, Calendar, 
+      TrendingUp, Clock, UserPlus, PhoneCall, Target, Award, Upload, 
+      Download, FileDown, AlertCircle, Loader2, Search
+    } = lucide;
+
+    // Load App component
+    async function loadApp() {
+      try {
+        // First, load environment variables
+        const envResponse = await fetch('/api/env');
+        const env = await envResponse.json();
+        window.process.env = env;
+        
+        // Then load the App.jsx file
+        const appResponse = await fetch('./App.jsx');
+        const appCode = await appResponse.text();
+        
+        // Transform and execute the code
+        const transformedCode = Babel.transform(appCode, {
+          presets: ['react']
+        }).code;
+        
+        // Execute the transformed code
+        eval(transformedCode);
+        
+        // Render the app
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(React.createElement(App));
+      } catch (error) {
+        console.error('Failed to load app:', error);
+        document.getElementById('root').innerHTML = '<div style="padding: 20px; text-align: center;">Error loading application. Please check console for details.</div>';
+      }
+    }
+    
+    loadApp();
+  </script>
+</body>
+</html>
