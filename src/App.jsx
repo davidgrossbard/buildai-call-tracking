@@ -151,25 +151,60 @@ const App = () => {
   };
 
   const loadCompanies = async () => {
-    const { data, error } = await supabase
-      .from('companies')
-      .select('*')
-      .order('name')
-      .limit(10000); // Increase limit to load all companies
+    // Supabase has a hard limit of 1000 rows per request
+    // We need to fetch in batches
+    let allCompanies = [];
+    let offset = 0;
+    const limit = 1000;
+    let hasMore = true;
     
-    if (error) throw error;
-    setCompanies(data || []);
+    while (hasMore) {
+      const { data, error } = await supabase
+        .from('companies')
+        .select('*')
+        .order('name')
+        .range(offset, offset + limit - 1);
+      
+      if (error) throw error;
+      
+      if (data && data.length > 0) {
+        allCompanies = [...allCompanies, ...data];
+        offset += limit;
+        hasMore = data.length === limit;
+      } else {
+        hasMore = false;
+      }
+    }
+    
+    setCompanies(allCompanies);
   };
 
   const loadContacts = async () => {
-    const { data, error } = await supabase
-      .from('contacts')
-      .select('*')
-      .order('name')
-      .limit(10000); // Increase limit to load all contacts
+    // Fetch contacts in batches due to Supabase limit
+    let allContacts = [];
+    let offset = 0;
+    const limit = 1000;
+    let hasMore = true;
     
-    if (error) throw error;
-    setContacts(data || []);
+    while (hasMore) {
+      const { data, error } = await supabase
+        .from('contacts')
+        .select('*')
+        .order('name')
+        .range(offset, offset + limit - 1);
+      
+      if (error) throw error;
+      
+      if (data && data.length > 0) {
+        allContacts = [...allContacts, ...data];
+        offset += limit;
+        hasMore = data.length === limit;
+      } else {
+        hasMore = false;
+      }
+    }
+    
+    setContacts(allContacts);
   };
 
   const loadCalls = async () => {
@@ -623,7 +658,7 @@ const App = () => {
       <div className="bg-white border-b">
         <div className="px-6">
           <nav className="flex space-x-8">
-            {['dashboard', 'companies', 'my_calls', 'leaderboard'].map(tab => (
+            {['dashboard', 'companies', 'my_calls', 'manager', 'leaderboard'].map(tab => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
@@ -1065,6 +1100,93 @@ const App = () => {
                     })}
                   </div>
                 )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Manager View Tab */}
+        {activeTab === 'manager' && (
+          <div className="space-y-6">
+            <div className="bg-white rounded-lg shadow">
+              <div className="px-6 py-4 border-b">
+                <h2 className="text-lg font-semibold text-gray-900">Manager View - All Companies</h2>
+                <p className="text-sm text-gray-500 mt-1">Assign and reassign companies to callers</p>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Company</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Assigned To</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Priority</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Buildings</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {filteredCompanies.map(company => (
+                      <tr key={company.id}>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-medium text-gray-900">{company.name}</div>
+                          <div className="text-sm text-gray-500">{getCompanyContacts(company.id).length} contacts</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={'px-2 inline-flex text-xs leading-5 font-semibold rounded-full ' +
+                            getStatusBadgeColor(company.status)}>
+                            {company.status.replace('_', ' ')}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <select
+                            value={company.assigned_to || ''}
+                            onChange={(e) => assignCompany(company.id, e.target.value)}
+                            className="text-sm border-gray-300 rounded-md"
+                          >
+                            <option value="">Unassigned</option>
+                            {callers.map(caller => (
+                              <option key={caller.id} value={caller.name}>
+                                {caller.name}
+                              </option>
+                            ))}
+                          </select>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={'px-2 inline-flex text-xs leading-5 font-semibold rounded-full ' +
+                            (company.priority === 'high' ? 'bg-red-100 text-red-800' :
+                             company.priority === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                             'bg-green-100 text-green-800')}>
+                            {company.priority}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {company.num_buildings || '-'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                          <button
+                            onClick={() => {
+                              setSelectedCompany(company);
+                              setShowCallModal(true);
+                            }}
+                            className="text-blue-600 hover:text-blue-900 mr-3"
+                          >
+                            Log Call
+                          </button>
+                          <button
+                            onClick={() => {
+                              setSelectedCompany(company);
+                              setShowSignupModal(true);
+                            }}
+                            className="text-green-600 hover:text-green-900"
+                          >
+                            Add Signup
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>
