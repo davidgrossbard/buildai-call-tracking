@@ -51,6 +51,7 @@ const App = () => {
   const [priorityFilter, setPriorityFilter] = useState('all');
   const [assignedFilter, setAssignedFilter] = useState('all');
   const [sortBy, setSortBy] = useState('name'); // 'name' or 'buildings'
+  const [myCallsSearchTerm, setMyCallsSearchTerm] = useState(''); // Search for My Calls tab
 
   // Callers list from database
   const [callers, setCallers] = useState([]);
@@ -1040,16 +1041,58 @@ const App = () => {
         {/* My Calls Tab */}
         {activeTab === 'my_calls' && (
           <div className="space-y-6">
+            {/* Search Bar for My Calls */}
+            <div className="bg-white rounded-lg shadow p-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <input
+                  type="text"
+                  placeholder="Search your assigned companies..."
+                  value={myCallsSearchTerm}
+                  onChange={(e) => setMyCallsSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+
             <div className="bg-white rounded-lg shadow">
               <div className="px-6 py-4 border-b">
                 <h2 className="text-lg font-semibold text-gray-900">My Assigned Companies</h2>
+                {myCallsSearchTerm && (
+                  <p className="text-sm text-gray-500 mt-1">
+                    Showing {companies
+                      .filter(c => c.assigned_to === currentUser?.name)
+                      .filter(company => {
+                        const searchLower = myCallsSearchTerm.toLowerCase();
+                        return company.name.toLowerCase().includes(searchLower) ||
+                               getCompanyContacts(company.id).some(contact => 
+                                 contact.name.toLowerCase().includes(searchLower) ||
+                                 contact.email?.toLowerCase().includes(searchLower) ||
+                                 contact.phone?.includes(myCallsSearchTerm)
+                               );
+                      }).length} results
+                  </p>
+                )}
               </div>
               <div className="p-6">
                 {companies.filter(c => c.assigned_to === currentUser?.name).length === 0 ? (
                   <p className="text-gray-500">No companies assigned yet. Go to Companies tab to claim some!</p>
                 ) : (
                   <div className="space-y-4">
-                    {companies.filter(c => c.assigned_to === currentUser?.name).map(company => {
+                    {companies
+                      .filter(c => c.assigned_to === currentUser?.name)
+                      .filter(company => {
+                        // Search filter
+                        if (!myCallsSearchTerm) return true;
+                        const searchLower = myCallsSearchTerm.toLowerCase();
+                        return company.name.toLowerCase().includes(searchLower) ||
+                               getCompanyContacts(company.id).some(contact => 
+                                 contact.name.toLowerCase().includes(searchLower) ||
+                                 contact.email?.toLowerCase().includes(searchLower) ||
+                                 contact.phone?.includes(myCallsSearchTerm)
+                               );
+                      })
+                      .map(company => {
                       const companyContacts = getCompanyContacts(company.id);
                       return (
                         <div key={company.id} className="border rounded-lg p-4">
@@ -1060,14 +1103,26 @@ const App = () => {
                                 {companyContacts.length} contacts • {company.num_buildings || 'N/A'} buildings
                               </p>
                             </div>
-                            <span className={'px-2 py-1 text-xs font-semibold rounded-full ' +
-                              (company.status === 'signed_up' ? 'bg-green-100 text-green-800' :
-                              company.status === 'in_progress' ? 'bg-yellow-100 text-yellow-800' :
-                              company.status === 'not_interested' ? 'bg-red-100 text-red-800' :
-                              'bg-gray-100 text-gray-800')
-                            }>
-                              {company.status?.replace('_', ' ') || 'not started'}
-                            </span>
+                            <div className="flex items-center space-x-2">
+                              <span className={'px-2 py-1 text-xs font-semibold rounded-full ' +
+                                (company.status === 'signed_up' ? 'bg-green-100 text-green-800' :
+                                company.status === 'in_progress' ? 'bg-yellow-100 text-yellow-800' :
+                                company.status === 'not_interested' ? 'bg-red-100 text-red-800' :
+                                'bg-gray-100 text-gray-800')
+                              }>
+                                {company.status?.replace('_', ' ') || 'not started'}
+                              </span>
+                              <button
+                                onClick={() => {
+                                  if (confirm(`Are you sure you want to unassign ${company.name}?`)) {
+                                    assignCompany(company.id, '');
+                                  }
+                                }}
+                                className="px-2 py-1 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200"
+                              >
+                                Unassign
+                              </button>
+                            </div>
                           </div>
                           
                           <div className="space-y-2">
