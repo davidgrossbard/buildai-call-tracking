@@ -52,21 +52,17 @@ const App = () => {
 
   // Callers list - in production, this could come from Supabase too
   const callers = [
-    { id: 1, name: 'Sarah Johnson', email: 'sarah@entech.com' },
-    { id: 2, name: 'Mike Chen', email: 'mike@entech.com' },
-    { id: 3, name: 'Jessica Williams', email: 'jessica@entech.com' },
-    { id: 4, name: 'David Brown', email: 'david@entech.com' },
-    { id: 5, name: 'Emily Davis', email: 'emily@entech.com' },
-    { id: 6, name: 'Robert Wilson', email: 'robert@entech.com' },
-    { id: 7, name: 'Lisa Anderson', email: 'lisa@entech.com' },
-    { id: 8, name: 'James Taylor', email: 'james@entech.com' },
-    { id: 9, name: 'Maria Garcia', email: 'maria@entech.com' },
-    { id: 10, name: 'John Martinez', email: 'john@entech.com' },
-    { id: 11, name: 'Patricia Lee', email: 'patricia@entech.com' },
-    { id: 12, name: 'Christopher Moore', email: 'christopher@entech.com' },
-    { id: 13, name: 'Jennifer White', email: 'jennifer@entech.com' },
-    { id: 14, name: 'Daniel Thompson', email: 'daniel@entech.com' },
-    { id: 15, name: 'Amanda Harris', email: 'amanda@entech.com' }
+    { id: 1, name: 'Becca Sitorsky', email: 'becca@buildai.com' },
+    { id: 2, name: 'Cindy Frank', email: 'cindy@buildai.com' },
+    { id: 3, name: 'Daniel Burg', email: 'daniel@buildai.com' },
+    { id: 4, name: 'Henny Margulies', email: 'henny@buildai.com' },
+    { id: 5, name: 'Laura Bendayan', email: 'laura@buildai.com' },
+    { id: 6, name: 'Nicole Owsianka', email: 'nicole@buildai.com' },
+    { id: 7, name: 'Nikki Mandelbaum', email: 'nikki@buildai.com' },
+    { id: 8, name: 'Sarah Epstein', email: 'sarah@buildai.com' },
+    { id: 9, name: 'Sherri Weinman', email: 'sherri@buildai.com' },
+    { id: 10, name: 'Eric Soloff', email: 'eric@buildai.com' },
+    { id: 11, name: 'Simon Soloff', email: 'simon@buildai.com' }
   ];
 
   const [expandedCompanies, setExpandedCompanies] = useState(new Set());

@@ -95,7 +95,7 @@ Note: V2 (1).txt contains an older version that hardcodes these values directly.
 ### Adding a New Caller
 Add to the `callers` array in App.jsx:
 ```javascript
-{ id: 16, name: 'New Person', email: 'new@entech.com' }
+{ id: 12, name: 'New Person', email: 'newperson@buildai.com' }
 ```
 
 ### Modifying Call Outcomes
