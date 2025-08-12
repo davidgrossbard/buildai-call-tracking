@@ -50,20 +50,8 @@ const App = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [priorityFilter, setPriorityFilter] = useState('all');
 
-  // Callers list - in production, this could come from Supabase too
-  const callers = [
-    { id: 1, name: 'Becca Sitorsky', email: 'becca@buildai.com' },
-    { id: 2, name: 'Cindy Frank', email: 'cindy@buildai.com' },
-    { id: 3, name: 'Daniel Burg', email: 'daniel@buildai.com' },
-    { id: 4, name: 'Henny Margulies', email: 'henny@buildai.com' },
-    { id: 5, name: 'Laura Bendayan', email: 'laura@buildai.com' },
-    { id: 6, name: 'Nicole Owsianka', email: 'nicole@buildai.com' },
-    { id: 7, name: 'Nikki Mandelbaum', email: 'nikki@buildai.com' },
-    { id: 8, name: 'Sarah Epstein', email: 'sarah@buildai.com' },
-    { id: 9, name: 'Sherri Weinman', email: 'sherri@buildai.com' },
-    { id: 10, name: 'Eric Soloff', email: 'eric@buildai.com' },
-    { id: 11, name: 'Simon Soloff', email: 'simon@buildai.com' }
-  ];
+  // Callers list from database
+  const [callers, setCallers] = useState([]);
 
   const [expandedCompanies, setExpandedCompanies] = useState(new Set());
 
@@ -115,16 +103,33 @@ const App = () => {
       )
       .subscribe();
 
-    // Set default user
-    setCurrentUser(callers[0]);
+    const callersSubscription = supabase
+      .channel('callers-channel')
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'callers' },
+        (payload) => {
+          loadCallers();
+        }
+      )
+      .subscribe();
+
+    // Default user will be set after callers are loaded
 
     // Cleanup subscriptions on unmount
     return () => {
       supabase.removeChannel(companiesSubscription);
       supabase.removeChannel(callsSubscription);
       supabase.removeChannel(signupsSubscription);
+      supabase.removeChannel(callersSubscription);
     };
   }, []);
+
+  // Set default user when callers are loaded
+  useEffect(() => {
+    if (callers.length > 0 && !currentUser) {
+      setCurrentUser(callers[0]);
+    }
+  }, [callers, currentUser]);
 
   const loadData = async () => {
     setLoading(true);
@@ -134,7 +139,8 @@ const App = () => {
         loadCompanies(),
         loadContacts(),
         loadCalls(),
-        loadSignups()
+        loadSignups(),
+        loadCallers()
       ]);
     } catch (err) {
       setError('Failed to load data. Please check your Supabase configuration.');
@@ -184,6 +190,17 @@ const App = () => {
     
     if (error) throw error;
     setSignups(data || []);
+  };
+
+  const loadCallers = async () => {
+    const { data, error } = await supabase
+      .from('callers')
+      .select('*')
+      .eq('is_active', true)
+      .order('name');
+    
+    if (error) throw error;
+    setCallers(data || []);
   };
 
   // Get contacts for a specific company
