@@ -6,10 +6,29 @@ import { createClient } from '@supabase/supabase-js';
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-// Initialize Supabase client
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// Initialize Supabase client with error handling
+let supabase = null;
+if (SUPABASE_URL && SUPABASE_ANON_KEY) {
+  supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+}
 
 const App = () => {
+  // Check for missing environment variables
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+    return (
+      <div className="min-h-screen bg-red-50 flex items-center justify-center p-4">
+        <div className="bg-white p-6 rounded-lg shadow-lg max-w-md">
+          <h1 className="text-xl font-bold text-red-600 mb-2">Configuration Error</h1>
+          <p className="text-gray-700 mb-4">Environment variables are not configured properly.</p>
+          <div className="bg-gray-100 p-3 rounded text-sm">
+            <p className="font-mono">VITE_SUPABASE_URL: {SUPABASE_URL || 'Not set'}</p>
+            <p className="font-mono">VITE_SUPABASE_ANON_KEY: {SUPABASE_ANON_KEY ? 'Set' : 'Not set'}</p>
+          </div>
+          <p className="text-xs text-gray-500 mt-4">Please check your Vercel environment variables.</p>
+        </div>
+      </div>
+    );
+  }
   
   const [companies, setCompanies] = useState([]);
   const [contacts, setContacts] = useState([]);
