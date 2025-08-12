@@ -3,13 +3,14 @@ import { Phone, Users, CheckCircle, Activity, User, Building, Calendar, Trending
 import { createClient } from '@supabase/supabase-js';
 
 // Use environment variables for Supabase credentials
-const SUPABASE_URL = process.env.REACT_APP_SUPABASE_URL;
-const SUPABASE_ANON_KEY = process.env.REACT_APP_SUPABASE_ANON_KEY;
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 // Initialize Supabase client
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const App = () => {
+  
   const [companies, setCompanies] = useState([]);
   const [contacts, setContacts] = useState([]);
   const [calls, setCalls] = useState([]);

@@ -4,98 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>BuildAI Event Tracker</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
-  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
-  <style>
-    /* Custom styles for better Tailwind integration */
-    [x-cloak] { display: none !important; }
-  </style>
 </head>
 <body>
   <div id="root"></div>
-  
-  <script type="text/babel">
-    // Initialize global variables
-    window.process = { env: {} };
-    
-    // Wait for all scripts to load
-    window.addEventListener('load', async function() {
-      try {
-        // Fetch environment variables
-        const response = await fetch('/api/env');
-        const env = await response.json();
-        window.process.env = env;
-        
-        // Map Lucide icons to global scope
-        const {
-          Phone, Users, CheckCircle, Activity, User, Building, Calendar, 
-          TrendingUp, Clock, UserPlus, PhoneCall, Target, Award, Upload, 
-          Download, FileDown, AlertCircle, Loader2, Search
-        } = lucide;
-        
-        // Make icons available globally
-        window.Phone = Phone;
-        window.Users = Users;
-        window.CheckCircle = CheckCircle;
-        window.Activity = Activity;
-        window.User = User;
-        window.Building = Building;
-        window.Calendar = Calendar;
-        window.TrendingUp = TrendingUp;
-        window.Clock = Clock;
-        window.UserPlus = UserPlus;
-        window.PhoneCall = PhoneCall;
-        window.Target = Target;
-        window.Award = Award;
-        window.Upload = Upload;
-        window.Download = Download;
-        window.FileDown = FileDown;
-        window.AlertCircle = AlertCircle;
-        window.Loader2 = Loader2;
-        window.Search = Search;
-        
-        // Load and transform App.jsx
-        const appResponse = await fetch('./App.jsx');
-        const appCode = await appResponse.text();
-        
-        // Remove import statements and export
-        const cleanedCode = appCode
-          .replace(/import[^;]+;/g, '')
-          .replace(/export default App;?/, '');
-        
-        // Add necessary globals
-        const wrappedCode = `
-          const { useState, useEffect } = React;
-          const { createClient } = supabase;
-          ${cleanedCode}
-          window.App = App;
-        `;
-        
-        // Transform and execute
-        const transformedCode = Babel.transform(wrappedCode, {
-          presets: ['react']
-        }).code;
-        
-        eval(transformedCode);
-        
-        // Render the app
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(React.createElement(window.App));
-      } catch (error) {
-        console.error('Failed to initialize app:', error);
-        document.getElementById('root').innerHTML = `
-          <div style="padding: 20px; text-align: center;">
-            <h2>Error loading application</h2>
-            <p>Please check the browser console for details.</p>
-            <pre style="text-align: left; background: #f5f5f5; padding: 10px; margin: 20px auto; max-width: 600px;">${error.message}</pre>
-          </div>
-        `;
-      }
-    });
-  </script>
+  <script type="module" src="/src/main.jsx"></script>
 </body>
 </html>
