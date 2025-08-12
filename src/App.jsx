@@ -49,6 +49,8 @@ const App = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [priorityFilter, setPriorityFilter] = useState('all');
+  const [assignedFilter, setAssignedFilter] = useState('all');
+  const [sortBy, setSortBy] = useState('name'); // 'name' or 'buildings'
 
   // Callers list from database
   const [callers, setCallers] = useState([]);
@@ -245,7 +247,7 @@ const App = () => {
 
   // Filter companies based on search and filter criteria
   const getFilteredCompanies = () => {
-    return companies.filter(company => {
+    let filtered = companies.filter(company => {
       // Search term filter
       const matchesSearch = searchTerm === '' || 
         company.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -262,8 +264,22 @@ const App = () => {
       // Priority filter
       const matchesPriority = priorityFilter === 'all' || company.priority === priorityFilter;
       
-      return matchesSearch && matchesStatus && matchesPriority;
+      // Assigned filter
+      const matchesAssigned = assignedFilter === 'all' || 
+        (assignedFilter === 'unassigned' && !company.assigned_to) ||
+        (assignedFilter !== 'unassigned' && company.assigned_to === assignedFilter);
+      
+      return matchesSearch && matchesStatus && matchesPriority && matchesAssigned;
     });
+    
+    // Apply sorting
+    if (sortBy === 'buildings') {
+      filtered.sort((a, b) => (b.num_buildings || 0) - (a.num_buildings || 0));
+    } else {
+      filtered.sort((a, b) => a.name.localeCompare(b.name));
+    }
+    
+    return filtered;
   };
 
   // Clear all filters
@@ -271,6 +287,8 @@ const App = () => {
     setSearchTerm('');
     setStatusFilter('all');
     setPriorityFilter('all');
+    setAssignedFilter('all');
+    setSortBy('name');
   };
 
   // Process CSV upload
@@ -658,7 +676,7 @@ const App = () => {
       <div className="bg-white border-b">
         <div className="px-6">
           <nav className="flex space-x-8">
-            {['dashboard', 'companies', 'my_calls', 'manager', 'leaderboard'].map(tab => (
+            {['dashboard', 'companies', 'my_calls', 'leaderboard'].map(tab => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
@@ -818,6 +836,27 @@ const App = () => {
                   <option value="medium">Medium</option>
                   <option value="low">Low</option>
                 </select>
+                <select 
+                  value={assignedFilter}
+                  onChange={(e) => setAssignedFilter(e.target.value)}
+                  className="px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="all">All Assigned</option>
+                  <option value="unassigned">Unassigned</option>
+                  {callers.map(caller => (
+                    <option key={caller.id} value={caller.name}>
+                      {caller.name}
+                    </option>
+                  ))}
+                </select>
+                <select 
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  className="px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="name">Sort by Name</option>
+                  <option value="buildings">Sort by Buildings</option>
+                </select>
                 <button
                   onClick={clearFilters}
                   className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
@@ -825,7 +864,7 @@ const App = () => {
                   Clear Filters
                 </button>
               </div>
-              {(searchTerm || statusFilter !== 'all' || priorityFilter !== 'all') && (
+              {(searchTerm || statusFilter !== 'all' || priorityFilter !== 'all' || assignedFilter !== 'all' || sortBy !== 'name') && (
                 <p className="text-sm text-gray-600 mt-2">
                   Found {getFilteredCompanies().length} of {companies.length} companies
                 </p>
@@ -1105,92 +1144,6 @@ const App = () => {
           </div>
         )}
 
-        {/* Manager View Tab */}
-        {activeTab === 'manager' && (
-          <div className="space-y-6">
-            <div className="bg-white rounded-lg shadow">
-              <div className="px-6 py-4 border-b">
-                <h2 className="text-lg font-semibold text-gray-900">Manager View - All Companies</h2>
-                <p className="text-sm text-gray-500 mt-1">Assign and reassign companies to callers</p>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Company</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Assigned To</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Priority</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Buildings</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {filteredCompanies.map(company => (
-                      <tr key={company.id}>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-medium text-gray-900">{company.name}</div>
-                          <div className="text-sm text-gray-500">{getCompanyContacts(company.id).length} contacts</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={'px-2 inline-flex text-xs leading-5 font-semibold rounded-full ' +
-                            getStatusBadgeColor(company.status)}>
-                            {company.status.replace('_', ' ')}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <select
-                            value={company.assigned_to || ''}
-                            onChange={(e) => assignCompany(company.id, e.target.value)}
-                            className="text-sm border-gray-300 rounded-md"
-                          >
-                            <option value="">Unassigned</option>
-                            {callers.map(caller => (
-                              <option key={caller.id} value={caller.name}>
-                                {caller.name}
-                              </option>
-                            ))}
-                          </select>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={'px-2 inline-flex text-xs leading-5 font-semibold rounded-full ' +
-                            (company.priority === 'high' ? 'bg-red-100 text-red-800' :
-                             company.priority === 'medium' ? 'bg-yellow-100 text-yellow-800' :
-                             'bg-green-100 text-green-800')}>
-                            {company.priority}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {company.num_buildings || '-'}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                          <button
-                            onClick={() => {
-                              setSelectedCompany(company);
-                              setShowCallModal(true);
-                            }}
-                            className="text-blue-600 hover:text-blue-900 mr-3"
-                          >
-                            Log Call
-                          </button>
-                          <button
-                            onClick={() => {
-                              setSelectedCompany(company);
-                              setShowSignupModal(true);
-                            }}
-                            className="text-green-600 hover:text-green-900"
-                          >
-                            Add Signup
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Leaderboard Tab */}
         {activeTab === 'leaderboard' && (
