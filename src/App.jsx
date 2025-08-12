@@ -550,6 +550,19 @@ const App = () => {
     }
   };
 
+  // Update company status
+  const updateCompanyStatus = async (companyId, newStatus) => {
+    const { error } = await supabase
+      .from('companies')
+      .update({ status: newStatus })
+      .eq('id', companyId);
+    
+    if (error) {
+      console.error('Error updating company status:', error);
+      alert('Failed to update status. Please try again.');
+    }
+  };
+
   // Log a call
   const logCall = async () => {
     const { error } = await supabase
@@ -965,14 +978,21 @@ const App = () => {
                             <div className="text-sm text-gray-500">{company.num_buildings || '-'}</div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={'px-2 inline-flex text-xs leading-5 font-semibold rounded-full ' +
-                              (company.status === 'signed_up' ? 'bg-green-100 text-green-800' :
-                              company.status === 'in_progress' ? 'bg-yellow-100 text-yellow-800' :
-                              company.status === 'not_interested' ? 'bg-red-100 text-red-800' :
-                              'bg-gray-100 text-gray-800')
-                            }>
-                              {company.status?.replace('_', ' ') || 'not started'}
-                            </span>
+                            <select
+                              value={company.status || 'not_started'}
+                              onChange={(e) => updateCompanyStatus(company.id, e.target.value)}
+                              className={'text-sm border rounded-md px-2 py-1 ' +
+                                (company.status === 'signed_up' ? 'bg-green-50 text-green-800 border-green-300' :
+                                company.status === 'in_progress' ? 'bg-yellow-50 text-yellow-800 border-yellow-300' :
+                                company.status === 'not_interested' ? 'bg-red-50 text-red-800 border-red-300' :
+                                'bg-gray-50 text-gray-800 border-gray-300')
+                              }
+                            >
+                              <option value="not_started">Not Started</option>
+                              <option value="in_progress">In Progress</option>
+                              <option value="signed_up">Signed Up</option>
+                              <option value="not_interested">Not Interested</option>
+                            </select>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <select
