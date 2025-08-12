@@ -57,6 +57,7 @@ const App = () => {
   const [callers, setCallers] = useState([]);
 
   const [expandedCompanies, setExpandedCompanies] = useState(new Set());
+  const [expandedMyCallsCompanies, setExpandedMyCallsCompanies] = useState(new Set());
 
   // Form states
   const [callForm, setCallForm] = useState({
@@ -1096,12 +1097,29 @@ const App = () => {
                       })
                       .map(company => {
                       const companyContacts = getCompanyContacts(company.id);
+                      const isExpanded = expandedMyCallsCompanies.has(company.id);
                       return (
                         <div key={company.id} className="border rounded-lg p-4">
                           <div className="flex justify-between items-start mb-3">
-                            <div>
-                              <h3 className="font-medium text-gray-900">{company.name}</h3>
-                              <p className="text-sm text-gray-500 mt-1">
+                            <div className="flex-1">
+                              <div className="flex items-center">
+                                <button
+                                  onClick={() => {
+                                    const newExpanded = new Set(expandedMyCallsCompanies);
+                                    if (isExpanded) {
+                                      newExpanded.delete(company.id);
+                                    } else {
+                                      newExpanded.add(company.id);
+                                    }
+                                    setExpandedMyCallsCompanies(newExpanded);
+                                  }}
+                                  className="mr-2 text-gray-500 hover:text-gray-700"
+                                >
+                                  {isExpanded ? '▼' : '▶'}
+                                </button>
+                                <h3 className="font-medium text-gray-900">{company.name}</h3>
+                              </div>
+                              <p className="text-sm text-gray-500 mt-1 ml-6">
                                 {companyContacts.length} contacts • {company.num_buildings || 'N/A'} buildings
                               </p>
                             </div>
@@ -1127,41 +1145,70 @@ const App = () => {
                             </div>
                           </div>
                           
-                          <div className="space-y-2">
-                            {companyContacts.map(contact => (
-                              <div key={contact.id} className="flex items-center justify-between bg-gray-50 rounded p-3">
-                                <div className="flex-1">
-                                  <p className="text-sm font-medium">{contact.name}</p>
-                                  <p className="text-xs text-gray-500">{contact.title}</p>
-                                  <p className="text-xs text-gray-500">
-                                    {contact.phone || contact.mobile || 'No phone'}
-                                  </p>
+                          {/* Action buttons for company level */}
+                          {!isExpanded && companyContacts.length > 0 && (
+                            <div className="ml-6 mt-2 flex space-x-2">
+                              <button
+                                onClick={() => {
+                                  setSelectedCompany(company);
+                                  setSelectedContact(companyContacts[0]);
+                                  setShowCallModal(true);
+                                }}
+                                className="px-3 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600"
+                              >
+                                Log Call
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setSelectedCompany(company);
+                                  setSelectedContact(companyContacts[0]);
+                                  setShowSignupModal(true);
+                                }}
+                                className="px-3 py-1 bg-green-500 text-white text-xs rounded hover:bg-green-600"
+                              >
+                                Log Signup
+                              </button>
+                            </div>
+                          )}
+                          
+                          {/* Expandable contacts section */}
+                          {isExpanded && (
+                            <div className="space-y-2 mt-3">
+                              {companyContacts.map(contact => (
+                                <div key={contact.id} className="flex items-center justify-between bg-gray-50 rounded p-3 ml-6">
+                                  <div className="flex-1">
+                                    <p className="text-sm font-medium">{contact.name}</p>
+                                    <p className="text-xs text-gray-500">{contact.title}</p>
+                                    <p className="text-xs text-gray-500">
+                                      {contact.phone || contact.mobile || 'No phone'}
+                                    </p>
+                                  </div>
+                                  <div className="flex space-x-2">
+                                    <button
+                                      onClick={() => {
+                                        setSelectedCompany(company);
+                                        setSelectedContact(contact);
+                                        setShowCallModal(true);
+                                      }}
+                                      className="px-3 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600"
+                                    >
+                                      Log Call
+                                    </button>
+                                    <button
+                                      onClick={() => {
+                                        setSelectedCompany(company);
+                                        setSelectedContact(contact);
+                                        setShowSignupModal(true);
+                                      }}
+                                      className="px-3 py-1 bg-green-500 text-white text-xs rounded hover:bg-green-600"
+                                    >
+                                      Signup
+                                    </button>
+                                  </div>
                                 </div>
-                                <div className="flex space-x-2">
-                                  <button
-                                    onClick={() => {
-                                      setSelectedCompany(company);
-                                      setSelectedContact(contact);
-                                      setShowCallModal(true);
-                                    }}
-                                    className="px-3 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600"
-                                  >
-                                    Log Call
-                                  </button>
-                                  <button
-                                    onClick={() => {
-                                      setSelectedCompany(company);
-                                      setSelectedContact(contact);
-                                      setShowSignupModal(true);
-                                    }}
-                                    className="px-3 py-1 bg-green-500 text-white text-xs rounded hover:bg-green-600"
-                                  >
-                                    Signup
-                                  </button>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       );
                     })}
