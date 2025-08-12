@@ -942,16 +942,18 @@ const App = () => {
                             </span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            {company.assigned_to ? (
-                              <div className="text-sm text-gray-900">{company.assigned_to}</div>
-                            ) : (
-                              <button
-                                onClick={() => assignCompany(company.id, currentUser.name)}
-                                className="text-blue-600 hover:text-blue-900 text-sm font-medium"
-                              >
-                                Claim
-                              </button>
-                            )}
+                            <select
+                              value={company.assigned_to || ''}
+                              onChange={(e) => assignCompany(company.id, e.target.value)}
+                              className="text-sm border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                            >
+                              <option value="">Unassigned</option>
+                              {callers.map(caller => (
+                                <option key={caller.id} value={caller.name}>
+                                  {caller.name}
+                                </option>
+                              ))}
+                            </select>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm">
                             <div className="flex space-x-2">
