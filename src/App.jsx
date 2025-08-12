@@ -58,6 +58,10 @@ const App = () => {
 
   const [expandedCompanies, setExpandedCompanies] = useState(new Set());
   const [expandedMyCallsCompanies, setExpandedMyCallsCompanies] = useState(new Set());
+  
+  // Pagination state for Companies tab
+  const [companiesPage, setCompaniesPage] = useState(1);
+  const companiesPerPage = 50;
 
   // Form states
   const [callForm, setCallForm] = useState({
@@ -284,6 +288,18 @@ const App = () => {
     return filtered;
   };
 
+  // Get paginated companies
+  const getPaginatedCompanies = () => {
+    const filtered = getFilteredCompanies();
+    const startIndex = (companiesPage - 1) * companiesPerPage;
+    const endIndex = startIndex + companiesPerPage;
+    return {
+      companies: filtered.slice(startIndex, endIndex),
+      totalCount: filtered.length,
+      totalPages: Math.ceil(filtered.length / companiesPerPage)
+    };
+  };
+
   // Clear all filters
   const clearFilters = () => {
     setSearchTerm('');
@@ -291,6 +307,7 @@ const App = () => {
     setPriorityFilter('all');
     setAssignedFilter('all');
     setSortBy('name');
+    setCompaniesPage(1); // Reset to first page
   };
 
   // Process CSV upload
@@ -820,14 +837,20 @@ const App = () => {
                       type="text"
                       placeholder="Search companies, contacts, emails..."
                       value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
+                      onChange={(e) => {
+                        setSearchTerm(e.target.value);
+                        setCompaniesPage(1); // Reset to first page when searching
+                      }}
                       className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
                 </div>
                 <select 
                   value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
+                  onChange={(e) => {
+                    setStatusFilter(e.target.value);
+                    setCompaniesPage(1);
+                  }}
                   className="px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="all">All Status</option>
@@ -838,7 +861,10 @@ const App = () => {
                 </select>
                 <select 
                   value={priorityFilter}
-                  onChange={(e) => setPriorityFilter(e.target.value)}
+                  onChange={(e) => {
+                    setPriorityFilter(e.target.value);
+                    setCompaniesPage(1);
+                  }}
                   className="px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="all">All Priority</option>
@@ -848,7 +874,10 @@ const App = () => {
                 </select>
                 <select 
                   value={assignedFilter}
-                  onChange={(e) => setAssignedFilter(e.target.value)}
+                  onChange={(e) => {
+                    setAssignedFilter(e.target.value);
+                    setCompaniesPage(1);
+                  }}
                   className="px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="all">All Assigned</option>
@@ -861,7 +890,10 @@ const App = () => {
                 </select>
                 <select 
                   value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value)}
+                  onChange={(e) => {
+                    setSortBy(e.target.value);
+                    setCompaniesPage(1);
+                  }}
                   className="px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="name">Sort by Name</option>
@@ -876,7 +908,7 @@ const App = () => {
               </div>
               {(searchTerm || statusFilter !== 'all' || priorityFilter !== 'all' || assignedFilter !== 'all' || sortBy !== 'name') && (
                 <p className="text-sm text-gray-600 mt-2">
-                  Found {getFilteredCompanies().length} of {companies.length} companies
+                  Found {getPaginatedCompanies().totalCount} of {companies.length} companies
                 </p>
               )}
             </div>
@@ -885,7 +917,7 @@ const App = () => {
             <div className="bg-white rounded-lg shadow">
               <div className="px-6 py-4 border-b">
                 <h2 className="text-lg font-semibold text-gray-900">
-                  Companies ({getFilteredCompanies().length})
+                  Companies ({getPaginatedCompanies().totalCount})
                 </h2>
               </div>
             <div className="overflow-x-auto">
@@ -901,7 +933,7 @@ const App = () => {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {getFilteredCompanies().map(company => {
+                  {getPaginatedCompanies().companies.map(company => {
                     const companyContacts = getCompanyContacts(company.id);
                     const isExpanded = expandedCompanies.has(company.id);
                     return (
@@ -1037,6 +1069,59 @@ const App = () => {
                 </tbody>
               </table>
             </div>
+            
+            {/* Pagination Controls */}
+            {getPaginatedCompanies().totalPages > 1 && (
+              <div className="px-6 py-4 border-t flex items-center justify-between">
+                <div className="text-sm text-gray-700">
+                  Showing {((companiesPage - 1) * companiesPerPage) + 1} to {Math.min(companiesPage * companiesPerPage, getPaginatedCompanies().totalCount)} of {getPaginatedCompanies().totalCount} companies
+                </div>
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => setCompaniesPage(Math.max(1, companiesPage - 1))}
+                    disabled={companiesPage === 1}
+                    className="px-3 py-1 border rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                  >
+                    Previous
+                  </button>
+                  <div className="flex items-center space-x-1">
+                    {[...Array(Math.min(5, getPaginatedCompanies().totalPages))].map((_, idx) => {
+                      let pageNumber;
+                      if (getPaginatedCompanies().totalPages <= 5) {
+                        pageNumber = idx + 1;
+                      } else if (companiesPage <= 3) {
+                        pageNumber = idx + 1;
+                      } else if (companiesPage >= getPaginatedCompanies().totalPages - 2) {
+                        pageNumber = getPaginatedCompanies().totalPages - 4 + idx;
+                      } else {
+                        pageNumber = companiesPage - 2 + idx;
+                      }
+                      
+                      return (
+                        <button
+                          key={pageNumber}
+                          onClick={() => setCompaniesPage(pageNumber)}
+                          className={`px-3 py-1 rounded text-sm ${
+                            companiesPage === pageNumber
+                              ? 'bg-blue-500 text-white'
+                              : 'hover:bg-gray-100'
+                          }`}
+                        >
+                          {pageNumber}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <button
+                    onClick={() => setCompaniesPage(Math.min(getPaginatedCompanies().totalPages, companiesPage + 1))}
+                    disabled={companiesPage === getPaginatedCompanies().totalPages}
+                    className="px-3 py-1 border rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
           </div>
         )}
