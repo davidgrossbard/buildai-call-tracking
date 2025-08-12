@@ -509,12 +509,20 @@ const App = () => {
 
   // Assign company to caller
   const assignCompany = async (companyId, callerName) => {
+    // If unassigning (empty string), set assigned_to to null and status back to not_started
+    const updateData = callerName 
+      ? { 
+          assigned_to: callerName,
+          status: 'in_progress'
+        }
+      : { 
+          assigned_to: null,
+          status: 'not_started'
+        };
+    
     const { error } = await supabase
       .from('companies')
-      .update({ 
-        assigned_to: callerName,
-        status: 'in_progress'
-      })
+      .update(updateData)
       .eq('id', companyId);
     
     if (error) {
