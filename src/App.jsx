@@ -148,7 +148,8 @@ const App = () => {
     const { data, error } = await supabase
       .from('companies')
       .select('*')
-      .order('name');
+      .order('name')
+      .limit(10000); // Increase limit to load all companies
     
     if (error) throw error;
     setCompanies(data || []);
@@ -158,7 +159,8 @@ const App = () => {
     const { data, error } = await supabase
       .from('contacts')
       .select('*')
-      .order('name');
+      .order('name')
+      .limit(10000); // Increase limit to load all contacts
     
     if (error) throw error;
     setContacts(data || []);
