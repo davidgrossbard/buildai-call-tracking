@@ -247,7 +247,7 @@ const App = () => {
           
           // Add contact
           companyMap[row.Company].contacts.push({
-            name: `${row.First || ''} ${row.Last || ''}`.trim(),
+            name: ((row.First || '') + ' ' + (row.Last || '')).trim(),
             title: row.Title || '',
             phone: row.Phone || null,
             mobile: row.Mobile || null,
@@ -296,7 +296,7 @@ const App = () => {
           }
         }
         
-        setUploadStatus(`Successfully imported ${Object.keys(companyMap).length} companies!`);
+        setUploadStatus('Successfully imported ' + Object.keys(companyMap).length + ' companies!');
         await loadData(); // Reload all data
         
         setTimeout(() => {
@@ -306,7 +306,7 @@ const App = () => {
         
       } catch (error) {
         console.error('Upload error:', error);
-        setUploadStatus(`Error: ${error.message}`);
+        setUploadStatus('Error: ' + error.message);
       }
     };
     
@@ -339,7 +339,7 @@ const App = () => {
     const csvContent = [
       headers.join(','),
       ...signupData.map(row => 
-        headers.map(header => `"${row[header] || ''}"`).join(',')
+        headers.map(header => '"' + (row[header] || '') + '"').join(',')
       )
     ].join('\n');
     
@@ -347,7 +347,7 @@ const App = () => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `buildai_signups_${new Date().toISOString().split('T')[0]}.csv`;
+    a.download = 'buildai_signups_' + new Date().toISOString().split('T')[0] + '.csv';
     a.click();
   };
 
@@ -375,7 +375,7 @@ const App = () => {
     const csvContent = [
       headers.join(','),
       ...callData.map(row => 
-        headers.map(header => `"${row[header] || ''}"`).join(',')
+        headers.map(header => '"' + (row[header] || '') + '"').join(',')
       )
     ].join('\n');
     
@@ -383,7 +383,7 @@ const App = () => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `buildai_calls_${new Date().toISOString().split('T')[0]}.csv`;
+    a.download = 'buildai_calls_' + new Date().toISOString().split('T')[0] + '.csv';
     a.click();
   };
 
@@ -592,11 +592,11 @@ const App = () => {
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`py-3 px-1 border-b-2 font-medium text-sm transition-colors ${
-                  activeTab === tab 
+                className={'py-3 px-1 border-b-2 font-medium text-sm transition-colors ' + 
+                  (activeTab === tab 
                     ? 'border-blue-500 text-blue-600' 
-                    : 'border-transparent text-gray-500 hover:text-gray-700'
-                }`}
+                    : 'border-transparent text-gray-500 hover:text-gray-700')
+                }
               >
                 {tab.charAt(0).toUpperCase() + tab.slice(1).replace('_', ' ')}
               </button>
@@ -678,7 +678,7 @@ const App = () => {
                         const company = companies.find(c => c.id === activity.company_id);
                         
                         return (
-                          <div key={`${activity.type}-${activity.id}`} className="flex items-center justify-between py-2">
+                          <div key={activity.type + '-' + activity.id} className="flex items-center justify-between py-2">
                             <div className="flex items-center space-x-3">
                               {isSignup ? (
                                 <CheckCircle className="w-5 h-5 text-green-500" />
@@ -687,7 +687,7 @@ const App = () => {
                               )}
                               <div>
                                 <p className="text-sm font-medium text-gray-900">
-                                  {activity.caller_name} {isSignup ? 'got a signup from' : `called`} {company?.name}
+                                  {activity.caller_name} {isSignup ? 'got a signup from' : 'called'} {company?.name}
                                 </p>
                                 <p className="text-xs text-gray-500">
                                   {new Date(activity.created_at).toLocaleString()}
@@ -814,12 +814,12 @@ const App = () => {
                             <div className="text-sm text-gray-500">{company.num_buildings || '-'}</div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                              company.status === 'signed_up' ? 'bg-green-100 text-green-800' :
+                            <span className={'px-2 inline-flex text-xs leading-5 font-semibold rounded-full ' +
+                              (company.status === 'signed_up' ? 'bg-green-100 text-green-800' :
                               company.status === 'in_progress' ? 'bg-yellow-100 text-yellow-800' :
                               company.status === 'not_interested' ? 'bg-red-100 text-red-800' :
-                              'bg-gray-100 text-gray-800'
-                            }`}>
+                              'bg-gray-100 text-gray-800')
+                            }>
                               {company.status?.replace('_', ' ') || 'not started'}
                             </span>
                           </td>
@@ -943,12 +943,12 @@ const App = () => {
                                 {companyContacts.length} contacts • {company.num_buildings || 'N/A'} buildings
                               </p>
                             </div>
-                            <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
-                              company.status === 'signed_up' ? 'bg-green-100 text-green-800' :
+                            <span className={'px-2 py-1 text-xs font-semibold rounded-full ' +
+                              (company.status === 'signed_up' ? 'bg-green-100 text-green-800' :
                               company.status === 'in_progress' ? 'bg-yellow-100 text-yellow-800' :
                               company.status === 'not_interested' ? 'bg-red-100 text-red-800' :
-                              'bg-gray-100 text-gray-800'
-                            }`}>
+                              'bg-gray-100 text-gray-800')
+                            }>
                               {company.status?.replace('_', ' ') || 'not started'}
                             </span>
                           </div>
@@ -1083,7 +1083,7 @@ const App = () => {
                             <div className="ml-2 w-24 bg-gray-200 rounded-full h-2">
                               <div 
                                 className="bg-blue-500 h-2 rounded-full" 
-                                style={{ width: `${caller.successRate}%` }}
+                                style={{ width: caller.successRate + '%' }}
                               />
                             </div>
                           </div>
@@ -1128,7 +1128,7 @@ const App = () => {
               </div>
               
               {uploadStatus && (
-                <div className={`p-3 rounded ${uploadStatus.includes('Error') ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
+                <div className={'p-3 rounded ' + (uploadStatus.includes('Error') ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700')}>
                   {uploadStatus}
                 </div>
               )}
@@ -1168,11 +1168,11 @@ const App = () => {
                     <div 
                       key={contact.id}
                       onClick={() => setSelectedContact(contact)}
-                      className={`p-3 rounded-md cursor-pointer border transition-colors ${
-                        selectedContact?.id === contact.id 
+                      className={'p-3 rounded-md cursor-pointer border transition-colors ' +
+                        (selectedContact?.id === contact.id 
                           ? 'bg-blue-50 border-blue-500' 
-                          : 'bg-white border-gray-200 hover:bg-gray-50'
-                      }`}
+                          : 'bg-white border-gray-200 hover:bg-gray-50')
+                      }
                     >
                       <div className="font-medium text-sm">{contact.name}</div>
                       <div className="text-xs text-gray-600">{contact.title}</div>
@@ -1268,11 +1268,11 @@ const App = () => {
                     <div 
                       key={contact.id}
                       onClick={() => setSelectedContact(contact)}
-                      className={`p-3 rounded-md cursor-pointer border transition-colors ${
-                        selectedContact?.id === contact.id 
+                      className={'p-3 rounded-md cursor-pointer border transition-colors ' +
+                        (selectedContact?.id === contact.id 
                           ? 'bg-green-50 border-green-500' 
-                          : 'bg-white border-gray-200 hover:bg-gray-50'
-                      }`}
+                          : 'bg-white border-gray-200 hover:bg-gray-50')
+                      }
                     >
                       <div className="font-medium text-sm">{contact.name}</div>
                       <div className="text-xs text-gray-600">{contact.title}</div>
