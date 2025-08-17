@@ -44,6 +44,9 @@ const App = () => {
   const [selectedContact, setSelectedContact] = useState(null);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [uploadStatus, setUploadStatus] = useState('');
+  const [callerSearchTerm, setCallerSearchTerm] = useState('');
+  const [showCallerDropdown, setShowCallerDropdown] = useState(false);
+  const [leaderboardView, setLeaderboardView] = useState('signups'); // 'signups' or 'calls'
   
   // Search and filter states
   const [searchTerm, setSearchTerm] = useState('');
@@ -140,6 +143,18 @@ const App = () => {
       setCurrentUser(callers[0]);
     }
   }, [callers, currentUser]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (showCallerDropdown && !event.target.closest('.relative')) {
+        setShowCallerDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showCallerDropdown]);
 
   const loadData = async () => {
     setLoading(true);
@@ -557,15 +572,15 @@ const App = () => {
 
   // Assign company to caller
   const assignCompany = async (companyId, callerName) => {
-    // If unassigning (empty string), set assigned_to to null and status back to not_started
+    // If unassigning (empty string), set assigned_to to null and status to unassigned
     const updateData = callerName 
       ? { 
           assigned_to: callerName,
-          status: 'in_progress'
+          status: 'assigned'
         }
       : { 
           assigned_to: null,
-          status: 'not_started'
+          status: 'unassigned'
         };
     
     const { error } = await supabase
@@ -611,11 +626,12 @@ const App = () => {
       return;
     }
     
-    // Update company status if not interested
-    if (callForm.outcome === 'reached_not_interested') {
+    // Always update company status to 'called' when a call is logged
+    // (unless it's already signed_up, in which case leave it)
+    if (selectedCompany.status !== 'signed_up') {
       await supabase
         .from('companies')
-        .update({ status: 'not_interested' })
+        .update({ status: 'called' })
         .eq('id', selectedCompany.id);
     }
     
@@ -727,15 +743,39 @@ const App = () => {
                 <Download className="w-4 h-4" />
                 <span>Export Calls</span>
               </button>
-              <select 
-                value={currentUser?.id || ''} 
-                onChange={(e) => setCurrentUser(callers.find(c => c.id === parseInt(e.target.value)))}
-                className="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                {callers.map(caller => (
-                  <option key={caller.id} value={caller.id}>{caller.name}</option>
-                ))}
-              </select>
+              <div className="relative">
+                <input
+                  type="text"
+                  value={callerSearchTerm}
+                  onChange={(e) => setCallerSearchTerm(e.target.value)}
+                  onFocus={() => setShowCallerDropdown(true)}
+                  placeholder={currentUser?.name || "Select a caller..."}
+                  className="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 w-48"
+                />
+                {showCallerDropdown && (
+                  <div className="absolute top-full left-0 mt-1 w-full bg-white border rounded-lg shadow-lg max-h-60 overflow-y-auto z-50">
+                    {callers
+                      .filter(caller => 
+                        caller.name.toLowerCase().includes(callerSearchTerm.toLowerCase())
+                      )
+                      .map(caller => (
+                        <button
+                          key={caller.id}
+                          onClick={() => {
+                            setCurrentUser(caller);
+                            setCallerSearchTerm('');
+                            setShowCallerDropdown(false);
+                          }}
+                          className={`w-full px-4 py-2 text-left hover:bg-blue-50 ${
+                            currentUser?.id === caller.id ? 'bg-blue-100 font-medium' : ''
+                          }`}
+                        >
+                          {caller.name}
+                        </button>
+                      ))}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -896,10 +936,10 @@ const App = () => {
                   className="px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="all">All Status</option>
-                  <option value="not_started">Not Started</option>
-                  <option value="in_progress">In Progress</option>
+                  <option value="unassigned">Unassigned</option>
+                  <option value="assigned">Assigned</option>
+                  <option value="called">Called</option>
                   <option value="signed_up">Signed Up</option>
-                  <option value="not_interested">Not Interested</option>
                 </select>
                 <select 
                   value={priorityFilter}
@@ -1046,19 +1086,19 @@ const App = () => {
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <select
-                              value={company.status || 'not_started'}
+                              value={company.status || 'unassigned'}
                               onChange={(e) => updateCompanyStatus(company.id, e.target.value)}
                               className={'text-sm border rounded-md px-2 py-1 ' +
                                 (company.status === 'signed_up' ? 'bg-green-50 text-green-800 border-green-300' :
-                                company.status === 'in_progress' ? 'bg-yellow-50 text-yellow-800 border-yellow-300' :
-                                company.status === 'not_interested' ? 'bg-red-50 text-red-800 border-red-300' :
+                                company.status === 'called' ? 'bg-blue-50 text-blue-800 border-blue-300' :
+                                company.status === 'assigned' ? 'bg-yellow-50 text-yellow-800 border-yellow-300' :
                                 'bg-gray-50 text-gray-800 border-gray-300')
                               }
                             >
-                              <option value="not_started">Not Started</option>
-                              <option value="in_progress">In Progress</option>
+                              <option value="unassigned">Unassigned</option>
+                              <option value="assigned">Assigned</option>
+                              <option value="called">Called</option>
                               <option value="signed_up">Signed Up</option>
-                              <option value="not_interested">Not Interested</option>
                             </select>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
@@ -1433,7 +1473,31 @@ const App = () => {
         {activeTab === 'leaderboard' && (
           <div className="bg-white rounded-lg shadow">
             <div className="px-6 py-4 border-b">
-              <h2 className="text-lg font-semibold text-gray-900">Team Leaderboard</h2>
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-semibold text-gray-900">Team Leaderboard</h2>
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => setLeaderboardView('signups')}
+                    className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                      leaderboardView === 'signups' 
+                        ? 'bg-blue-500 text-white' 
+                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    }`}
+                  >
+                    By Signups
+                  </button>
+                  <button
+                    onClick={() => setLeaderboardView('calls')}
+                    className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                      leaderboardView === 'calls' 
+                        ? 'bg-blue-500 text-white' 
+                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    }`}
+                  >
+                    By Calls
+                  </button>
+                </div>
+              </div>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full">
@@ -1449,7 +1513,7 @@ const App = () => {
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {metrics.callerStats
-                    .sort((a, b) => b.signups - a.signups)
+                    .sort((a, b) => leaderboardView === 'signups' ? b.signups - a.signups : b.calls - a.calls)
                     .map((caller, idx) => (
                       <tr key={caller.id} className={caller.id === currentUser?.id ? 'bg-blue-50' : ''}>
                         <td className="px-6 py-4 whitespace-nowrap">
@@ -1467,9 +1531,15 @@ const App = () => {
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{caller.companies}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{caller.calls}</td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <span className="text-sm font-medium text-green-600">{caller.signups}</span>
+                          <span className={`text-sm font-medium ${leaderboardView === 'calls' ? 'text-blue-600' : 'text-gray-500'}`}>
+                            {caller.calls}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`text-sm font-medium ${leaderboardView === 'signups' ? 'text-green-600' : 'text-gray-500'}`}>
+                            {caller.signups}
+                          </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center">
