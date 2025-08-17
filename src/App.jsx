@@ -727,17 +727,15 @@ const App = () => {
                 <Download className="w-4 h-4" />
                 <span>Export Calls</span>
               </button>
-              {(activeTab === 'mycalls' || activeTab === 'leaderboard') && (
-                <select 
-                  value={currentUser?.id || ''} 
-                  onChange={(e) => setCurrentUser(callers.find(c => c.id === parseInt(e.target.value)))}
-                  className="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  {callers.map(caller => (
-                    <option key={caller.id} value={caller.id}>{caller.name}</option>
-                  ))}
-                </select>
-              )}
+              <select 
+                value={currentUser?.id || ''} 
+                onChange={(e) => setCurrentUser(callers.find(c => c.id === parseInt(e.target.value)))}
+                className="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                {callers.map(caller => (
+                  <option key={caller.id} value={caller.id}>{caller.name}</option>
+                ))}
+              </select>
             </div>
           </div>
         </div>
@@ -1234,12 +1232,7 @@ const App = () => {
 
             <div className="bg-white rounded-lg shadow">
               <div className="px-6 py-4 border-b">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-lg font-semibold text-gray-900">My Assigned Companies</h2>
-                  <div className="text-sm text-gray-600">
-                    Viewing as: <span className="font-medium">{currentUser?.name || 'Select a user'}</span>
-                  </div>
-                </div>
+                <h2 className="text-lg font-semibold text-gray-900">My Assigned Companies</h2>
                 {myCallsSearchTerm && (
                   <p className="text-sm text-gray-500 mt-1">
                     Showing {companies
