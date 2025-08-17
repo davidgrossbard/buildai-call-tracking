@@ -50,6 +50,8 @@ const App = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [priorityFilter, setPriorityFilter] = useState('all');
   const [assignedFilter, setAssignedFilter] = useState('all');
+  const [accountManagerFilter, setAccountManagerFilter] = useState('all');
+  const [salesRepFilter, setSalesRepFilter] = useState('all');
   const [sortBy, setSortBy] = useState('name'); // 'name' or 'buildings'
   const [myCallsSearchTerm, setMyCallsSearchTerm] = useState(''); // Search for My Calls tab
 
@@ -275,7 +277,15 @@ const App = () => {
         (assignedFilter === 'unassigned' && !company.assigned_to) ||
         (assignedFilter !== 'unassigned' && company.assigned_to === assignedFilter);
       
-      return matchesSearch && matchesStatus && matchesPriority && matchesAssigned;
+      // Account Manager filter
+      const matchesAccountManager = accountManagerFilter === 'all' || 
+        company.account_manager === accountManagerFilter;
+      
+      // Sales Rep filter
+      const matchesSalesRep = salesRepFilter === 'all' || 
+        company.sales_rep === salesRepFilter;
+      
+      return matchesSearch && matchesStatus && matchesPriority && matchesAssigned && matchesAccountManager && matchesSalesRep;
     });
     
     // Apply sorting
@@ -300,12 +310,31 @@ const App = () => {
     };
   };
 
+  // Get unique account managers and sales reps for filters
+  const getUniqueAccountManagers = () => {
+    const managers = [...new Set(companies
+      .map(c => c.account_manager)
+      .filter(am => am && am.trim() !== '')
+    )].sort();
+    return managers;
+  };
+
+  const getUniqueSalesReps = () => {
+    const reps = [...new Set(companies
+      .map(c => c.sales_rep)
+      .filter(sr => sr && sr.trim() !== '')
+    )].sort();
+    return reps;
+  };
+
   // Clear all filters
   const clearFilters = () => {
     setSearchTerm('');
     setStatusFilter('all');
     setPriorityFilter('all');
     setAssignedFilter('all');
+    setAccountManagerFilter('all');
+    setSalesRepFilter('all');
     setSortBy('name');
     setCompaniesPage(1); // Reset to first page
   };
@@ -904,6 +933,36 @@ const App = () => {
                   ))}
                 </select>
                 <select 
+                  value={accountManagerFilter}
+                  onChange={(e) => {
+                    setAccountManagerFilter(e.target.value);
+                    setCompaniesPage(1);
+                  }}
+                  className="px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="all">All Account Managers</option>
+                  {getUniqueAccountManagers().map(manager => (
+                    <option key={manager} value={manager}>
+                      {manager}
+                    </option>
+                  ))}
+                </select>
+                <select 
+                  value={salesRepFilter}
+                  onChange={(e) => {
+                    setSalesRepFilter(e.target.value);
+                    setCompaniesPage(1);
+                  }}
+                  className="px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="all">All Sales Reps</option>
+                  {getUniqueSalesReps().map(rep => (
+                    <option key={rep} value={rep}>
+                      {rep}
+                    </option>
+                  ))}
+                </select>
+                <select 
                   value={sortBy}
                   onChange={(e) => {
                     setSortBy(e.target.value);
@@ -1175,7 +1234,12 @@ const App = () => {
 
             <div className="bg-white rounded-lg shadow">
               <div className="px-6 py-4 border-b">
-                <h2 className="text-lg font-semibold text-gray-900">My Assigned Companies</h2>
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg font-semibold text-gray-900">My Assigned Companies</h2>
+                  <div className="text-sm text-gray-600">
+                    Viewing as: <span className="font-medium">{currentUser?.name || 'Select a user'}</span>
+                  </div>
+                </div>
                 {myCallsSearchTerm && (
                   <p className="text-sm text-gray-500 mt-1">
                     Showing {companies
